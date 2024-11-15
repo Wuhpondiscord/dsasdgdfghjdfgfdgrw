@@ -9,7 +9,6 @@ from transformers import (
 from diffusers import StableDiffusionPipeline
 from PIL import Image
 
-# Determine the device to use: GPU if available, else CPU
 device = "cuda" if torch.cuda.is_available() else "cpu"
 st.write(f"Using device: {device}")
 
@@ -23,13 +22,12 @@ def load_text_model(model_name, device):
                 low_cpu_mem_usage=True
             ).to(device)
         elif model_name == "GPT-2":
-            # For GPT-2, using the pipeline directly
             model = pipeline(
                 "text-generation",
                 model="gpt2",
-                device=0 if device == "cuda" else -1  # -1 for CPU
+                device=0 if device == "cuda" else -1
             )
-            tokenizer = None  # Pipeline handles tokenization
+            tokenizer = None
         else:
             st.error("Selected text model is not supported.")
             return None, None
@@ -60,7 +58,7 @@ def load_image_model(model_name, device):
             st.error("Selected image model is not supported.")
             return None
         pipe = pipe.to(device)
-        pipe.safety_checker = None  # Disable safety checker if desired
+        pipe.safety_checker = None
         return pipe
     except OSError as e:
         st.error(f"Failed to load {model_name}: {e}")
@@ -93,30 +91,21 @@ def generate_image(prompt, pipe, num_inference_steps=25):
         image = pipe(prompt, num_inference_steps=num_inference_steps).images[0]
     return image
 
-# Streamlit App Layout
 st.title("Divine Image Generator")
 st.write("This application channels divine inspiration to create religious-themed images.")
-
-# Sidebar for Model Selection
 st.sidebar.header("Model Selection")
 text_models = ["GPT-Neo 125M", "GPT-2"]  
 selected_text_model = st.sidebar.selectbox("Select Text Model", text_models)
 image_models = ["Stable Diffusion v1-4", "Stable Diffusion v2-1"]
 selected_image_model = st.sidebar.selectbox("Select Image Model", image_models)
-
-# Load Models with Spinner
 with st.spinner("Loading models..."):
     tokenizer, text_model = load_text_model(selected_text_model, device)
     image_pipe = load_image_model(selected_image_model, device)
-
-# Check if models are loaded successfully
 if selected_text_model != "GPT-2" and tokenizer is None or text_model is None or image_pipe is None:
     st.stop()
 if selected_text_model == "GPT-2" and text_model is None or image_pipe is None:
     st.stop()
-
 user_input = st.text_input("Enter a theme or concept for divine inspiration (e.g., 'divine guidance'):")
-
 if st.button("Generate Divine Image"):
     if user_input:
         with st.spinner("Connecting with the divine..."):
@@ -126,7 +115,6 @@ if st.button("Generate Divine Image"):
             else:
                 divine_prompt = generate_text(prompt, tokenizer, text_model, device)
             st.write("**Divine Message:**", divine_prompt)
-            
             st.write("**Generating image...**")
             divine_image = generate_image(divine_prompt, image_pipe)
             st.image(divine_image, caption="Generated Religious Image", use_container_width=True)
